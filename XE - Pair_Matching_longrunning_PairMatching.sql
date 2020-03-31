@@ -1,4 +1,4 @@
-CREATE EVENT SESSION [CityOfOrlando_getProject_Alert]
+CREATE EVENT SESSION [LongRunning_Alert]
 ON SERVER
     ADD EVENT sqlserver.sp_statement_completed
     (SET collect_statement = (0)
@@ -7,7 +7,7 @@ ON SERVER
          sqlserver.session_id
      )
      WHERE (
-               [object_id] = (1835153583)
+               [object_id] = (1835153583) --Object ID of proc you are watching for
                AND [source_database_id] = (9)
            )
     ),
@@ -18,7 +18,7 @@ ON SERVER
          sqlserver.session_id
      )
      WHERE (
-               [object_id] = (1835153583)
+               [object_id] = (1835153583) --Object ID of proc you are watching for
                AND [source_database_id] = (9)
            )
     )
@@ -43,7 +43,7 @@ SELECT @target_data = CAST(target_data AS XML)
 FROM sys.dm_xe_sessions AS s
     JOIN sys.dm_xe_session_targets AS t
         ON t.event_session_address = s.address
-WHERE s.name = 'CityOfOrlando_getProject_Alert'
+WHERE s.name = 'LongRunning_Alert'
       AND t.target_name = 'pair_matching';
 
 
