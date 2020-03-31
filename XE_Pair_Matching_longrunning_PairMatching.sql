@@ -76,4 +76,3 @@ FROM
 ) AS tab
 ORDER BY session_id,
          activity_id;
-GO
