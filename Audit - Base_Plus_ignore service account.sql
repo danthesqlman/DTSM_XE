@@ -54,7 +54,7 @@ SET @Serverauditname = NULL--N'ServerAudit'
 
 --Database level parameters
 --Leave Databasename NULL to not add one. 
-SET @databasename = N'bginfo'
+SET @databasename = N'master'
 SET @databaseauditname = @databasename + N'_Audit'
 SET @addingDBtoExisting = 0 --Options: 0,1,Set to 1 to add a new database to an existing Server Audit, 0 will just allow for errors and skip
 
