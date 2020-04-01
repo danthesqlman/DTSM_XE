@@ -1,5 +1,5 @@
 --Demo 
---and example based on Jonathan Kehayias
+--and example based on Jonathan Kehayias's Pluralsight course
 --https://www.sqlskills.com/blogs/jonathan/category/extended-events/
 
 USE master;

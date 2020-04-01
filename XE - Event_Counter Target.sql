@@ -10,39 +10,47 @@
 /*                          Event_Counter Target                            */
 /****************************************************************************/
 
-set noexec off
-go
+SET NOEXEC OFF;
+GO
 
-if convert(int,
-			left(
-				convert(nvarchar(128), serverproperty('ProductVersion')),
-				charindex('.',convert(nvarchar(128), serverproperty('ProductVersion'))) - 1
-			)
-	) < 10 
-begin
-	raiserror('You should have SQL Server 2008+ to execute this script',16,1) with nowait
-	set noexec on
-end
-go
+IF CONVERT(
+              INT,
+              LEFT(CONVERT(NVARCHAR(128), SERVERPROPERTY('ProductVersion')), CHARINDEX(
+                                                                                          '.',
+                                                                                          CONVERT(
+                                                                                                     NVARCHAR(128),
+                                                                                                     SERVERPROPERTY('ProductVersion')
+                                                                                                 )
+                                                                                      ) - 1)
+          ) < 10
+BEGIN
+    RAISERROR('You should have SQL Server 2008+ to execute this script', 16, 1) WITH NOWAIT;
+    SET NOEXEC ON;
+END;
+GO
 
-if exists
+IF EXISTS
 (
-	select * 
-	from sys.server_event_sessions
-	where name = 'FileStats'
+    SELECT *
+    FROM sys.server_event_sessions
+    WHERE name = 'FileStats'
 )
-	drop event session FileStats on server
-go
+    DROP EVENT SESSION FileStats ON SERVER;
+GO
 
 
-if convert(int,
-			left(
-				convert(nvarchar(128), serverproperty('ProductVersion')),
-				charindex('.',convert(nvarchar(128), serverproperty('ProductVersion'))) - 1
-			)
-	) = 10 -- SQL Server 2008
-begin -- SQL Server 2008	
-	exec sp_executesql N'
+IF CONVERT(
+              INT,
+              LEFT(CONVERT(NVARCHAR(128), SERVERPROPERTY('ProductVersion')), CHARINDEX(
+                                                                                          '.',
+                                                                                          CONVERT(
+                                                                                                     NVARCHAR(128),
+                                                                                                     SERVERPROPERTY('ProductVersion')
+                                                                                                 )
+                                                                                      ) - 1)
+          ) = 10 -- SQL Server 2008
+BEGIN -- SQL Server 2008	
+    EXEC sp_executesql N'
 create event session [FileStats] 
 on server
 add event
@@ -61,10 +69,11 @@ with
 	(
 		event_retention_mode=allow_single_event_loss
 		,max_dispatch_latency=5 seconds
-	);'
-end
-else begin -- SQL Server 2012+	
-	exec sp_executesql N'
+	);';
+END;
+ELSE
+BEGIN -- SQL Server 2012+	
+    EXEC sp_executesql N'
 create event session [FileStats] 
 on server
 add event
@@ -83,57 +92,50 @@ with
 	(
 		event_retention_mode=allow_single_event_loss
 		,max_dispatch_latency=5 seconds
-	);'
-end
-go
+	);';
+END;
+GO
 
-alter event session [FileStats]
-on server
-state=start;
-go 
+ALTER EVENT SESSION [FileStats] ON SERVER STATE = START;
+GO
 
-raiserror('You can trigger tempdb activity with Chapter 3 "04.Statistics and Memory Grants.sql" script',0,1) with nowait
-go
+RAISERROR('You can trigger tempdb activity with Chapter 3 "04.Statistics and Memory Grants.sql" script', 0, 1) WITH NOWAIT;
+GO
 
 /*** Examining Session Data ***/
-declare
-	@TargetName sysname
+DECLARE @TargetName sysname;
 
-select @TargetName = 
-	case 
-		when 
-			convert(int,
-				left(
-					convert(nvarchar(128), serverproperty('ProductVersion')),
-					charindex('.',convert(nvarchar(128), serverproperty('ProductVersion'))) - 1
-				)
-			) = 10
-		then 'synchronous_event_counter'
-		else 'event_counter' 
-	end
-
-;with TargetData(Data)
-as
-(
-	select convert(xml,st.target_data) as Data
-	from sys.dm_xe_sessions s join sys.dm_xe_session_targets st on
-		s.address = st.event_session_address
-	where s.name = 'FileStats' and st.target_name = @TargetName
-)
-,EventInfo([Event],[Count])
-as
-(
-	select
-		t.e.value('@name','sysname') as [Event]
-		,t.e.value('@count','bigint') as [Count]
-	from 
-		TargetData cross apply
-			TargetData.Data.nodes
-	 	 ('/CounterTarget/Packages/Package[@name="sqlserver"]/Event') 
-				as t(e)
-)
-select [Event], [Count]
-from EventInfo;
-go
+SELECT @TargetName
+    = CASE
+          WHEN CONVERT(
+                          INT,
+                          LEFT(CONVERT(NVARCHAR(128), SERVERPROPERTY('ProductVersion')), CHARINDEX(
+                                                                                                      '.',
+                                                                                                      CONVERT(
+                                                                                                                 NVARCHAR(128),
+                                                                                                                 SERVERPROPERTY('ProductVersion')
+                                                                                                             )
+                                                                                                  ) - 1)
+                      ) = 10 THEN
+              'synchronous_event_counter'
+          ELSE
+              'event_counter'
+      END;
+WITH TargetData (Data)
+AS (SELECT CONVERT(XML, st.target_data) AS Data
+    FROM sys.dm_xe_sessions s
+        JOIN sys.dm_xe_session_targets st
+            ON s.address = st.event_session_address
+    WHERE s.name = 'FileStats'
+          AND st.target_name = @TargetName),
+     EventInfo ([Event], [Count])
+AS (SELECT t.e.value('@name', 'sysname') AS [Event],
+           t.e.value('@count', 'bigint') AS [Count]
+    FROM TargetData
+        CROSS APPLY TargetData.DATA.nodes('/CounterTarget/Packages/Package[@name="sqlserver"]/Event') AS t(E) )
+SELECT [Event],
+       [Count]
+FROM EventInfo;
+GO
 
 

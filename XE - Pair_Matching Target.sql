@@ -10,94 +10,82 @@
 /*                          Pair_Matching Target                            */
 /****************************************************************************/
 
-set noexec off
-go
+SET NOEXEC OFF;
+GO
 
-if convert(int,
-			left(
-				convert(nvarchar(128), serverproperty('ProductVersion')),
-				charindex('.',convert(nvarchar(128), serverproperty('ProductVersion'))) - 1
-			)
-	) < 10 
-begin
-	raiserror('You should have SQL Server 2008+ to execute this script',16,1) with nowait
-	set noexec on
-end
-go
+IF CONVERT(
+              INT,
+              LEFT(CONVERT(NVARCHAR(128), SERVERPROPERTY('ProductVersion')), CHARINDEX(
+                                                                                          '.',
+                                                                                          CONVERT(
+                                                                                                     NVARCHAR(128),
+                                                                                                     SERVERPROPERTY('ProductVersion')
+                                                                                                 )
+                                                                                      ) - 1)
+          ) < 10
+BEGIN
+    RAISERROR('You should have SQL Server 2008+ to execute this script', 16, 1) WITH NOWAIT;
+    SET NOEXEC ON;
+END;
+GO
 
-if convert(int,
-			left(
-				convert(nvarchar(128), serverproperty('ProductVersion')),
-				charindex('.',convert(nvarchar(128), serverproperty('ProductVersion'))) - 1
-			)
-	) < 11 -- SQL Server 2012/2014 is required
-begin
-	raiserror('SQL Server 2008/2008R2 does not support "statement" in the matching columns.',16,1) with nowait
-	raiserror('However, you can work with pair_matching target the same way as it is shown here',16,1) with nowait
-	set noexec on
-end
-go
+IF CONVERT(
+              INT,
+              LEFT(CONVERT(NVARCHAR(128), SERVERPROPERTY('ProductVersion')), CHARINDEX(
+                                                                                          '.',
+                                                                                          CONVERT(
+                                                                                                     NVARCHAR(128),
+                                                                                                     SERVERPROPERTY('ProductVersion')
+                                                                                                 )
+                                                                                      ) - 1)
+          ) < 11 -- SQL Server 2012/2014 is required
+BEGIN
+    RAISERROR('SQL Server 2008/2008R2 does not support "statement" in the matching columns.', 16, 1) WITH NOWAIT;
+    RAISERROR('However, you can work with pair_matching target the same way as it is shown here', 16, 1) WITH NOWAIT;
+    SET NOEXEC ON;
+END;
+GO
 
-if exists
+IF EXISTS (SELECT * FROM sys.server_event_sessions WHERE name = 'Timeouts')
+    DROP EVENT SESSION Timeouts ON SERVER;
+GO
+
+CREATE EVENT SESSION [Timeouts]
+ON SERVER
+    ADD EVENT sqlserver.sql_statement_starting
+    (ACTION
+     (
+         sqlserver.session_id
+     )
+    ),
+    ADD EVENT sqlserver.sql_statement_completed
+    (ACTION
+     (
+         sqlserver.session_id
+     )
+    )
+    ADD TARGET package0.pair_matching
+    (SET begin_event = 'sqlserver.sql_statement_starting', begin_matching_columns = 'statement', begin_matching_actions = 'sqlserver.session_id', end_event = 'sqlserver.sql_statement_completed', end_matching_columns = 'statement', end_matching_actions = 'sqlserver.session_id', respond_to_memory_pressure = 0)
+WITH
 (
-	select * 
-	from sys.server_event_sessions
-	where name = 'Timeouts'
-)
-	drop event session Timeouts on server
-go
+    MAX_DISPATCH_LATENCY = 10 SECONDS,
+    TRACK_CAUSALITY = ON
+);
 
-create event session [Timeouts]
-on server
-add event 
-	sqlserver.sql_statement_starting
-	(    
-		action (sqlserver.session_id)
-	),
-add event 
-	sqlserver.sql_statement_completed
-	(    
-		action (sqlserver.session_id)
-	)
-add target
-	package0.pair_matching
-	(
-		set
-			begin_event = 'sqlserver.sql_statement_starting'
-			,begin_matching_columns = 'statement'
-			,begin_matching_actions = 'sqlserver.session_id'
-			,end_event = 'sqlserver.sql_statement_completed'
-			,end_matching_columns = 'statement'
-			,end_matching_actions = 'sqlserver.session_id'
-			,respond_to_memory_pressure = 0
-	)
-with	
-	(
-		max_dispatch_latency=10 seconds
-		,track_causality=on
-	);
+ALTER EVENT SESSION Timeouts ON SERVER STATE = START;
+GO
 
-alter event session Timeouts
-on server
-state=start;
-go 
-
-;with TargetData(Data)
-as
-(
-	select convert(xml,st.target_data) as Data
-	from sys.dm_xe_sessions s join sys.dm_xe_session_targets st on
-		s.address = st.event_session_address
-	where s.name = 'Timeouts' and st.target_name = 'pair_matching'
-)
-select
-	t.e.value('@timestamp','datetime') as [Event Time]
-	,t.e.value('@name','sysname') as [Event]
-	,t.e.value('(action[@name="session_id"]/value/text())[1]','smallint') 
-		as [SPID]
-	,t.e.value('(data[@name="statement"]/value/text())[1]','nvarchar(max)')
-		as [SQL]
-from 
-	TargetData cross apply
-		TargetData.Data.nodes('/PairingTarget/event') as t(e) 
-go
+;WITH TargetData (Data)
+ AS (SELECT CONVERT(XML, st.target_data) AS Data
+     FROM sys.dm_xe_sessions s
+         JOIN sys.dm_xe_session_targets st
+             ON s.address = st.event_session_address
+     WHERE s.name = 'Timeouts'
+           AND st.target_name = 'pair_matching')
+SELECT t.e.value('@timestamp', 'datetime') AS [Event Time],
+       t.e.value('@name', 'sysname') AS [Event],
+       t.e.value('(action[@name="session_id"]/value/text())[1]', 'smallint') AS [SPID],
+       t.e.value('(data[@name="statement"]/value/text())[1]', 'nvarchar(max)') AS [SQL]
+FROM TargetData
+    CROSS APPLY TargetData.DATA.nodes('/PairingTarget/event') AS t(E);
+GO

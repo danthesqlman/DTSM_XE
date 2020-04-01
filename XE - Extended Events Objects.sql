@@ -10,165 +10,197 @@
 /*                         Extended Events Objects                          */
 /****************************************************************************/
 
-set noexec off
-go
+SET NOEXEC OFF;
+GO
 
 
-if convert(int,
-			left(
-				convert(nvarchar(128), serverproperty('ProductVersion')),
-				charindex('.',convert(nvarchar(128), serverproperty('ProductVersion'))) - 1
-			)
-	) < 10 
-begin
-	raiserror('You should have SQL Server 2008+ to execute this script',16,1) with nowait
-	set noexec on
-end
-go
+IF CONVERT(
+              INT,
+              LEFT(CONVERT(NVARCHAR(128), SERVERPROPERTY('ProductVersion')), CHARINDEX(
+                                                                                          '.',
+                                                                                          CONVERT(
+                                                                                                     NVARCHAR(128),
+                                                                                                     SERVERPROPERTY('ProductVersion')
+                                                                                                 )
+                                                                                      ) - 1)
+          ) < 10
+BEGIN
+    RAISERROR('You should have SQL Server 2008+ to execute this script', 16, 1) WITH NOWAIT;
+    SET NOEXEC ON;
+END;
+GO
 
 /*** Packages ***/
-select 
-	dxp.guid, dxp.name, dxp.description, dxp.capabilities
-	,dxp.capabilities_desc, os.name as [Module]
-from 
-	sys.dm_xe_packages dxp join sys.dm_os_loaded_modules os on	
-		dxp.module_address = os.base_address
-go
+SELECT dxp.guid,
+       dxp.name,
+       dxp.description,
+       dxp.capabilities,
+       dxp.capabilities_desc,
+       os.name AS [Module]
+FROM sys.dm_xe_packages dxp
+    JOIN sys.dm_os_loaded_modules os
+        ON dxp.module_address = os.base_address;
+GO
 
 
 /*** Events ***/
-select 
-	xp.name as [Package]
-	,xo.name as [Event]
-	,xo.Description
-from 
-	sys.dm_xe_packages xp join sys.dm_xe_objects xo on
-		xp.guid = xo.package_guid
-where
-	(xp.capabilities is null or xp.capabilities & 1 = 0) and
-	(xo.capabilities is null or xo.capabilities & 1 = 0) and
-	xo.object_type = 'event'
-order by
-	xp.name, xo.name
-go
+SELECT xp.name AS [Package],
+       xo.name AS [Event],
+       xo.description
+FROM sys.dm_xe_packages xp
+    JOIN sys.dm_xe_objects xo
+        ON xp.guid = xo.package_guid
+WHERE (
+          xp.capabilities IS NULL
+          OR xp.capabilities & 1 = 0
+      )
+      AND
+      (
+          xo.capabilities IS NULL
+          OR xo.capabilities & 1 = 0
+      )
+      AND xo.object_type = 'event'
+ORDER BY xp.name,
+         xo.name;
+GO
 
 /*** Event Columns ***/
-select 
-	dxoc.column_id
-	,dxoc.name
-	,dxoc.type_name as [Data Type]
-	,dxoc.column_type as [Column Type]
-	,dxoc.column_value as [Value]
-	,dxoc.description
-from 
-	sys.dm_xe_object_columns dxoc
-where 
-	dxoc.object_name = 'sql_statement_completed'
-go
+SELECT dxoc.column_id,
+       dxoc.name,
+       dxoc.type_name AS [Data Type],
+       dxoc.column_type AS [Column Type],
+       dxoc.column_value AS [Value],
+       dxoc.description
+FROM sys.dm_xe_object_columns dxoc
+WHERE dxoc.object_name = 'sql_statement_completed';
+GO
 
 /*** Predicates ***/
-select 
-	xp.name as [Package]
-	,xo.name as [Predicate]
-	,xo.Description
-from 
-	sys.dm_xe_packages xp join sys.dm_xe_objects xo on
-		xp.guid = xo.package_guid
-where
-	(xp.capabilities is null or xp.capabilities & 1 = 0) and
-	(xo.capabilities is null or xo.capabilities & 1 = 0) and
-	xo.object_type = 'pred_source'
-order by
-	xp.name, xo.name
-go
+SELECT xp.name AS [Package],
+       xo.name AS [Predicate],
+       xo.description
+FROM sys.dm_xe_packages xp
+    JOIN sys.dm_xe_objects xo
+        ON xp.guid = xo.package_guid
+WHERE (
+          xp.capabilities IS NULL
+          OR xp.capabilities & 1 = 0
+      )
+      AND
+      (
+          xo.capabilities IS NULL
+          OR xo.capabilities & 1 = 0
+      )
+      AND xo.object_type = 'pred_source'
+ORDER BY xp.name,
+         xo.name;
+GO
 
 /*** Comparison Functions ***/
-select 
-	xp.name as [Package]
-	,xo.name as [Comparison Function]
-	,xo.Description
-from 
-	sys.dm_xe_packages xp join sys.dm_xe_objects xo on
-		xp.guid = xo.package_guid
-where
-	(xp.capabilities is null or xp.capabilities & 1 = 0) and
-	(xo.capabilities is null or xo.capabilities & 1 = 0) and
-	xo.object_type = 'pred_compare'
-order by
-	xp.name, xo.name
-go
+SELECT xp.name AS [Package],
+       xo.name AS [Comparison Function],
+       xo.description
+FROM sys.dm_xe_packages xp
+    JOIN sys.dm_xe_objects xo
+        ON xp.guid = xo.package_guid
+WHERE (
+          xp.capabilities IS NULL
+          OR xp.capabilities & 1 = 0
+      )
+      AND
+      (
+          xo.capabilities IS NULL
+          OR xo.capabilities & 1 = 0
+      )
+      AND xo.object_type = 'pred_compare'
+ORDER BY xp.name,
+         xo.name;
+GO
 
 /*** Actions ***/
-select 
-	xp.name as [Package]
-	,xo.name as [Action]
-	,xo.Description
-from 
-	sys.dm_xe_packages xp join sys.dm_xe_objects xo on
-		xp.guid = xo.package_guid
-where
-	(xp.capabilities is null or xp.capabilities & 1 = 0) and
-	(xo.capabilities is null or xo.capabilities & 1 = 0) and
-	xo.object_type = 'action'
-order by
-	xp.name, xo.name
-go
+SELECT xp.name AS [Package],
+       xo.name AS [Action],
+       xo.description
+FROM sys.dm_xe_packages xp
+    JOIN sys.dm_xe_objects xo
+        ON xp.guid = xo.package_guid
+WHERE (
+          xp.capabilities IS NULL
+          OR xp.capabilities & 1 = 0
+      )
+      AND
+      (
+          xo.capabilities IS NULL
+          OR xo.capabilities & 1 = 0
+      )
+      AND xo.object_type = 'action'
+ORDER BY xp.name,
+         xo.name;
+GO
 
 /*** Types and Maps ***/
-select
-	xo.object_type as [Object]
-	,xo.name
-	,xo.description
-	,xo.type_name
-	,xo.type_size
-from 
-	sys.dm_xe_objects xo 
-where
-	xo.object_type in ('type','map')
-go
+SELECT xo.object_type AS [Object],
+       xo.name,
+       xo.description,
+       xo.type_name,
+       xo.type_size
+FROM sys.dm_xe_objects xo
+WHERE xo.object_type IN ( 'type', 'map' );
+GO
 
 /*** Map values ***/
-select name, map_key, map_value
-from sys.dm_xe_map_values
-where name = 'wait_types'
-order by map_key
-go
+SELECT name,
+       map_key,
+       map_value
+FROM sys.dm_xe_map_values
+WHERE name = 'wait_types'
+ORDER BY map_key;
+GO
 
 /*** Targets ***/
-select 
-	xp.name as [Package]
-	,xo.name as [Action]
-	,xo.Description
-	,xo.capabilities_desc as [Capabilities]
-from 
-	sys.dm_xe_packages xp join sys.dm_xe_objects xo on
-		xp.guid = xo.package_guid
-where
-	(xp.capabilities is null or xp.capabilities & 1 = 0) and
-	(xo.capabilities is null or xo.capabilities & 1 = 0) and
-	xo.object_type = 'target'
-order by
-	xp.name, xo.name
-go
+SELECT xp.name AS [Package],
+       xo.name AS [Action],
+       xo.description,
+       xo.capabilities_desc AS [Capabilities]
+FROM sys.dm_xe_packages xp
+    JOIN sys.dm_xe_objects xo
+        ON xp.guid = xo.package_guid
+WHERE (
+          xp.capabilities IS NULL
+          OR xp.capabilities & 1 = 0
+      )
+      AND
+      (
+          xo.capabilities IS NULL
+          OR xo.capabilities & 1 = 0
+      )
+      AND xo.object_type = 'target'
+ORDER BY xp.name,
+         xo.name;
+GO
 
 /*** Target Configuration ***/
-select 
-	oc.column_id
-	,oc.name as [Column]
-	,oc.type_name
-	,oc.Description
-	,oc.capabilities_desc as [Capabilities]
-from 
-	sys.dm_xe_packages xp join sys.dm_xe_objects xo on
-		xp.guid = xo.package_guid
-	join sys.dm_xe_object_columns oc on 
-		xo.package_guid = oc.object_package_guid and
-		xo.name = oc.object_name
-where
-	(xp.capabilities is null or xp.capabilities & 1 = 0) and
-	(xo.capabilities is null or xo.capabilities & 1 = 0) and
-	xo.object_type = 'target' and 
-	xo.name in ('event_file' /* SQL Server 2012+ */, 'asynchronous_file_target' /* SQL Server 2008/2008R2 */ )
-order by
-	oc.column_id
-go
+SELECT oc.column_id,
+       oc.name AS [Column],
+       oc.type_name,
+       oc.description,
+       oc.capabilities_desc AS [Capabilities]
+FROM sys.dm_xe_packages xp
+    JOIN sys.dm_xe_objects xo
+        ON xp.guid = xo.package_guid
+    JOIN sys.dm_xe_object_columns oc
+        ON xo.package_guid = oc.object_package_guid
+           AND xo.name = oc.object_name
+WHERE (
+          xp.capabilities IS NULL
+          OR xp.capabilities & 1 = 0
+      )
+      AND
+      (
+          xo.capabilities IS NULL
+          OR xo.capabilities & 1 = 0
+      )
+      AND xo.object_type = 'target'
+      AND xo.name IN ( 'event_file' /* SQL Server 2012+ */, 'asynchronous_file_target' /* SQL Server 2008/2008R2 */ )
+ORDER BY oc.column_id;
+GO

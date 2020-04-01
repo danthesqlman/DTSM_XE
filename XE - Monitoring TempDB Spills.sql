@@ -10,74 +10,70 @@
 /*                          Creating Event Session                          */
 /****************************************************************************/
 
-set noexec off
-go
+SET NOEXEC OFF;
+GO
 
 
-if convert(int,
-			left(
-				convert(nvarchar(128), serverproperty('ProductVersion')),
-				charindex('.',convert(nvarchar(128), serverproperty('ProductVersion'))) - 1
-			)
-	) < 11 -- SQL Server 2012/2014 is required
-begin
-	raiserror('You should have SQL Server 2012+ to execute this script',16,1) with nowait
-	raiserror('SQL Server 2008/2008R2 does not support hash_warning/sort_warning events',16,1) with nowait
-	set noexec on
-end
-go
+IF CONVERT(
+              INT,
+              LEFT(CONVERT(NVARCHAR(128), SERVERPROPERTY('ProductVersion')), CHARINDEX(
+                                                                                          '.',
+                                                                                          CONVERT(
+                                                                                                     NVARCHAR(128),
+                                                                                                     SERVERPROPERTY('ProductVersion')
+                                                                                                 )
+                                                                                      ) - 1)
+          ) < 11 -- SQL Server 2012/2014 is required
+BEGIN
+    RAISERROR('You should have SQL Server 2012+ to execute this script', 16, 1) WITH NOWAIT;
+    RAISERROR('SQL Server 2008/2008R2 does not support hash_warning/sort_warning events', 16, 1) WITH NOWAIT;
+    SET NOEXEC ON;
+END;
+GO
 
-if exists
+IF EXISTS
 (
-	select * 
-	from sys.server_event_sessions
-	where name = 'TempDB Spills'
+    SELECT *
+    FROM sys.server_event_sessions
+    WHERE name = 'TempDB Spills'
 )
-	drop event session [TempDB Spills] on server
-go
+    DROP EVENT SESSION [TempDB Spills] ON SERVER;
+GO
 
-create event session [TempDB Spills] 
-on server
-add event
-	sqlserver.hash_warning
-	(
-		action
-		(
-			sqlserver.session_id
-			,sqlserver.plan_handle
-			,sqlserver.sql_text
-		)
-		where(sqlserver.is_system=0)
-	), 
-add event
-	sqlserver.sort_warning
-	(
-		action
-		(
-			sqlserver.session_id
-			,sqlserver.plan_handle
-			,sqlserver.sql_text
-		)
-		where(sqlserver.is_system=0)
-	)
-add target
-	 package0.event_file
-	 (set filename='c:\ExtEvents\TempDB_Spiils.xel',max_file_size=25),
-add target 
-	package0.ring_buffer
-	(set max_memory=4096)
-with	
+CREATE EVENT SESSION [TempDB Spills]
+ON SERVER
+    ADD EVENT sqlserver.hash_warning
+    (ACTION
+     (
+         sqlserver.session_id,
+         sqlserver.plan_handle,
+         sqlserver.sql_text
+     )
+     WHERE (sqlserver.is_system = 0)
+    ),
+    ADD EVENT sqlserver.sort_warning
+    (ACTION
+     (
+         sqlserver.session_id,
+         sqlserver.plan_handle,
+         sqlserver.sql_text
+     )
+     WHERE (sqlserver.is_system = 0)
+    )
+    ADD TARGET package0.event_file
+    (SET filename = 'c:\ExtEvents\TempDB_Spiils.xel', max_file_size = 25),
+    ADD TARGET package0.ring_buffer
+    (SET max_memory = 4096)
+WITH
 (
-	max_memory=4096KB
-	,event_retention_mode=allow_single_event_loss
-	,max_dispatch_latency=15 seconds
-	,track_causality=off
-	,memory_partition_mode=none
-	,startup_state=off
+    MAX_MEMORY = 4096KB,
+    EVENT_RETENTION_MODE = ALLOW_SINGLE_EVENT_LOSS,
+    MAX_DISPATCH_LATENCY = 15 SECONDS,
+    TRACK_CAUSALITY = OFF,
+    MEMORY_PARTITION_MODE = NONE,
+    STARTUP_STATE = OFF
 );
-go
+GO
 
-alter event session [TempDB Spills]
-on server
-state=start;
-go
+ALTER EVENT SESSION [TempDB Spills] ON SERVER STATE = START;
+GO

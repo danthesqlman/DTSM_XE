@@ -1,4 +1,4 @@
-USE db_administration
+USE msdb
 GO
 IF EXISTS (SELECT 1 FROM SYS.tables WHERE name = 'SQL_Error_Reported') 
 	BEGIN 
@@ -86,7 +86,7 @@ FROM
     FROM sys.fn_xe_file_target_read_file('c:\temp\Error_reported*.xel',NULL,NULL,NULL)
 ) AS x(d)
 )
-	INSERT INTO db_administration.dbo.SQL_Error_Reported
+	INSERT INTO msdb.dbo.SQL_Error_Reported
 	(
 	    Start_time,
 	    Error_Reported,
@@ -122,9 +122,8 @@ SELECT ID,
        Severity,
        State,
        Database_name 
-FROM db_administration.dbo.SQL_Error_Reported;
+FROM msdb.dbo.SQL_Error_Reported;
 
 ALTER EVENT SESSION [error_report] ON SERVER STATE = STOP;
 ALTER EVENT SESSION [error_report] ON SERVER STATE = START;
 
-SELECT * FROM sys.messages WHERE text LIKE '%conversion failed%'

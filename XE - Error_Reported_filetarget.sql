@@ -41,3 +41,23 @@ GO
 ALTER EVENT SESSION [Error_Reported] ON SERVER STATE = START;
 GO
 
+
+;WITH CTE AS
+(
+SELECT  StartTime = d.value(N'(/event/@timestamp)[1]', N'datetime'),
+		Error_Reported = d.value(N'(/event/data[@name="message"]/value)[1]', N'varchar(max)'),
+		UserNAme = d.value(N'(/event/action[@name="username"]/value)[1]', N'varchar(128)'),
+		NTUserNAme = d.value(N'(/event/action[@name="nt_username"]/value)[1]', N'varchar(128)'),
+		SQL_Text = ISNULL(d.value(N'(/event/action[@name="sql_text"]/value)[1]', N'varchar(max)'),'No SQL Text for this error'),
+		ClientApplication = d.value(N'(/event/action[@name="client_app_name"]/value)[1]',N'varchar(128)'),
+		[ERROR_NUMBER] = d.value(N'(/event/data[@name="error_number"]/value)[1]',N'int'),
+		[Severity] = d.value(N'(/event/data[@name="severity"]/value)[1]',N'int'),
+		[State] = d.value(N'(/event/data[@name="state"]/value)[1]',N'int'),
+		[Database_name] = d.value(N'(/event/action[@name="database_name"]/value)[1]', N'varchar(128)')
+FROM
+(
+    SELECT CONVERT(XML, event_data) 
+    FROM sys.fn_xe_file_target_read_file('C:\Temp\Error_reported*.xel',NULL,NULL,NULL)
+) AS x(d)
+)
+SELECT * FROM CTE;
