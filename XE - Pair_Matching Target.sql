@@ -89,3 +89,4 @@ SELECT t.e.value('@timestamp', 'datetime') AS [Event Time],
 FROM TargetData
     CROSS APPLY TargetData.DATA.nodes('/PairingTarget/event') AS t(E);
 GO
+--Comment here
