@@ -22,15 +22,16 @@ ON SERVER
 			   OR [error_number] = (230)
 			   OR [error_number] = (300)
 			   OR [error_number] = (2104)
+			   OR [error_number] = (15457)
            )
     )
-    ADD TARGET package0.event_file
-    (SET filename = N'c:\temp\Error_reported') -- change file location here if needed. 
+    ADD TARGET package0.event_file(SET filename=N'Error_reported',-- change file location here if needed. 
+	max_file_size=(20),max_rollover_files=(10)) 
 WITH
 (
     MAX_MEMORY = 4096KB,
     EVENT_RETENTION_MODE = ALLOW_SINGLE_EVENT_LOSS,
-    MAX_DISPATCH_LATENCY = 300 SECONDS,
+    MAX_DISPATCH_LATENCY = 90 SECONDS,
     MAX_EVENT_SIZE = 0KB,
     MEMORY_PARTITION_MODE = NONE,
     TRACK_CAUSALITY = OFF,
