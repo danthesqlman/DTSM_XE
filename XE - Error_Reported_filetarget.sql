@@ -43,6 +43,20 @@ ALTER EVENT SESSION [Error_Reported] ON SERVER STATE = START;
 GO
 
 
+
+DECLARE @FileName NVARCHAR(4000)
+
+SELECT 	TOP 1 @FileName = target_data.value('(EventFileTarget/File/@name)[1]', 'NVARCHAR(4000)')
+FROM 
+	(SELECT CAST(target_data AS XML) target_data
+	FROM sys.dm_xe_sessions AS s
+		INNER JOIN sys.dm_xe_session_targets t
+		ON s.address = t.event_session_address
+	WHERE s.name = N'Error_Reported'
+	) AS ft
+WHERE
+	target_data.value('(EventFileTarget/File/@name)[1]', 'NVARCHAR(4000)') IS NOT NULL
+
 ;WITH CTE AS
 (
 SELECT  StartTime = d.value(N'(/event/@timestamp)[1]', N'datetime'),
@@ -58,7 +72,7 @@ SELECT  StartTime = d.value(N'(/event/@timestamp)[1]', N'datetime'),
 FROM
 (
     SELECT CONVERT(XML, event_data) 
-    FROM sys.fn_xe_file_target_read_file('C:\Temp\Error_reported*.xel',NULL,NULL,NULL)
+    FROM sys.fn_xe_file_target_read_file(@FileName,NULL,NULL,NULL)
 ) AS x(d)
 )
 SELECT * FROM CTE;
