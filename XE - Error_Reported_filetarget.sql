@@ -23,11 +23,11 @@ ON SERVER
 			   OR [error_number] = (300)
 			   OR [error_number] = (2104)
 			   OR [error_number] = (15457)
-			   or [error_number] = (262) --ShowPlan permission 
+			   /*or [error_number] = (262) --ShowPlan permission */
            )
     )
     ADD TARGET package0.event_file(SET filename=N'Error_reported',-- change file location here if needed. 
-	max_file_size=(20),max_rollover_files=(10)) 
+	max_file_size=(20),max_rollover_files=(5)) 
 WITH
 (
     MAX_MEMORY = 4096KB,
