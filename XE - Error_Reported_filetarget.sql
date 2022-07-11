@@ -6,7 +6,9 @@ ON SERVER
          sqlserver.client_app_name,
          sqlserver.nt_username,
          sqlserver.sql_text,
-         sqlserver.username
+         sqlserver.username,
+		 sqlserver.database_name,
+		 sqlserver.client_hostname
      )
      WHERE (
                [package0].[greater_than_equal_int64]([severity], (16))
@@ -26,7 +28,7 @@ ON SERVER
            )
     )
     ADD TARGET package0.event_file(SET filename=N'Error_reported',-- change file location here if needed. 
-	max_file_size=(20),max_rollover_files=(10)) 
+	max_file_size=(20),max_rollover_files=(5)) 
 WITH
 (
     MAX_MEMORY = 4096KB,
@@ -65,10 +67,13 @@ SELECT  StartTime = d.value(N'(/event/@timestamp)[1]', N'datetime'),
 		NTUserNAme = d.value(N'(/event/action[@name="nt_username"]/value)[1]', N'varchar(128)'),
 		SQL_Text = ISNULL(d.value(N'(/event/action[@name="sql_text"]/value)[1]', N'varchar(max)'),'No SQL Text for this error'),
 		ClientApplication = d.value(N'(/event/action[@name="client_app_name"]/value)[1]',N'varchar(128)'),
+		[Client_Hostname] = d.value(N'(/event/action[@name="database_name"]/value)[1]', N'varchar(128)'),
 		[ERROR_NUMBER] = d.value(N'(/event/data[@name="error_number"]/value)[1]',N'int'),
 		[Severity] = d.value(N'(/event/data[@name="severity"]/value)[1]',N'int'),
 		[State] = d.value(N'(/event/data[@name="state"]/value)[1]',N'int'),
 		[Database_name] = d.value(N'(/event/action[@name="database_name"]/value)[1]', N'varchar(128)')
+		
+
 FROM
 (
     SELECT CONVERT(XML, event_data) 
