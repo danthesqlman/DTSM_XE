@@ -25,6 +25,7 @@ ON SERVER
 			   OR [error_number] = (300)
 			   OR [error_number] = (2104)
 			   OR [error_number] = (15457)
+			   /*or [error_number] = (262) --ShowPlan permission */
            )
     )
     ADD TARGET package0.event_file(SET filename=N'Error_reported',-- change file location here if needed. 
